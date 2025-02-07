@@ -1,7 +1,7 @@
 ### Bicycle Manufacturer SQL Project
 
 ## **I. INTRODUCTION**
-The goal of this project is to design and develop an SQL-based database system to manage the operations of a bicycle manufacturing company. The system will help manage the production, sales, inventory, and employee-related data efficiently and effectively. It will allow the manufacturer to track raw materials, finished products, sales, suppliers, and customers.
+This project aims to practice SQL syntax, problem solving skill apply for a bicycle manufacturing company using Google BigQuery. The system will efficiently manage large volumes of data related to bicycle production, inventory, sales, and customer management, taking advantage of BigQuery’s powerful capabilities in handling large datasets and performing complex analytics in real-time.
 ## **II. DATASET**
 - The AdventureWorks2019 dataset is stored in a public Google BigQuery dataset.
   
@@ -170,7 +170,7 @@ RDER BY yr DESC, rnk;
 | Week	| 201726	| yahoo	| 20.39| 
 
 
-### **Query 4: Average number of pageviews by purchaser type (purchasers vs non-purchasers) in June, July 2017**
+### **Query 4: Calc Total Discount Cost belongs to Seasonal Discount for each SubCategory**
 ```SQL
 SELECT
   extract(YEAR FROM DATE(sales.ModifiedDate))
@@ -208,7 +208,7 @@ GROUP BY 1,2;
 | 201707	| 124.23755186721992	| 334.05655979568053| 
 
 
-### **Query 5: Average number of transactions per user that made a purchase in July 2017**
+### **Query 5: Retention rate of Customer in 2014 with status of Successfully Shipped (Cohort Analysis)**
 ```SQL
 WITH 
 info AS (
@@ -263,19 +263,33 @@ ORDER BY 1,2;
 
 
 
-### **Query 6: Average amount of money spent per session. Only include purchaser data in July 2017**
+### **Query 6: Trend of Stock level & MoM diff % by all product in 2011. If %gr rate is null then 0. Round to 1 decimal**
 ```SQL
-SELECT  
-  format_date('%Y%m', cast(date as date format 'YYYYMMDD')) month
-  ,round((sum(product.productRevenue)/1000000)/count(totals.visits),2) as avg_revenue_by_user_per_visit
-FROM `bigquery-public-data.google_analytics_sample.ga_sessions_2017*`,
-      UNNEST(hits) hits,
-      UNNEST(hits.product) product
-WHERE 
-  product.productRevenue is not null
-  and totals.transactions is not null
-  and extract(month from cast(date as date format 'YYYYMMDD')) = 07
-GROUP BY month;
+WITH stock_info AS (
+  SELECT
+    product.Name name
+    ,extract(MONTH FROM DATE(work.ModifiedDate)) AS MONTH
+    ,sum(work.StockedQty) stock_qty
+  FROM `adventureworks2019.Production.Product` product 
+  LEFT JOIN `adventureworks2019.Production.WorkOrder` work on product.ProductID = work.ProductID
+  WHERE extract(YEAR FROM DATE(work.ModifiedDate)) = 2011
+  GROUP BY 1,2
+),
+get_diff AS (
+SELECT
+  *
+  ,lead(stock_qty) OVER(PARTITION BY name ORDER BY month DESC) stock_prv
+  ,round(100.0*(stock_qty/lead(stock_qty) OVER(PARTITION BY name ORDER BY month DESC)-1),1) cal_diff
+ FROM stock_info
+)
+SELECT
+  name
+  ,month
+  ,stock_qty
+  ,stock_prv
+  ,coalesce(cal_diff, 0)
+FROM get_diff
+ORDER BY name, month DESC;
 ```
 | month	| avg_revenue_by_user_per_visit| 
 | --- | --- |
@@ -283,37 +297,40 @@ GROUP BY month;
 
 
 
-### **Query 7: Other products purchased by customers who purchased product "YouTube Men's Vintage Henley" in July 2017**
+### **Query 7:  Calc Ratio of Stock / Sales in 2011 by product name, by month. Order results by month desc, ratio desc. Round Ratio to 1 decimal, mom yoy**
 ```SQL
-WITH v1 AS (
-  SELECT
-    distinct fullVisitorId
-  FROM `bigquery-public-data.google_analytics_sample.ga_sessions_2017*`,
-        UNNEST(hits) hits,
-        UNNEST(hits.product) product
-  WHERE product.productRevenue IS NOT NULL 
-        AND extract(month from cast(date as date format 'YYYYMMDD')) = 07
-        AND product.v2ProductName = "YouTube Men's Vintage Henley"
+WITH sales_info AS (
+  SELECT  
+    extract(MONTH FROM DATE(sales.ModifiedDate)) sales_mth
+    ,extract(YEAR FROM DATE(sales.ModifiedDate)) yr
+    ,sales.productID
+    ,product.Name name
+    ,sum(sales.OrderQty) sales_qty
+  FROM `adventureworks2019.Sales.SalesOrderDetail` sales
+  LEFT JOIN `adventureworks2019.Production.Product` product ON sales.ProductID =  product.ProductID
+    WHERE extract(YEAR FROM DATE(sales.ModifiedDate)) = 2011
+  GROUP BY 1,2,3,4
 ),
-purchased AS (
+stock_info AS (
   SELECT
-    fullVisitorId
-    ,product.v2ProductName name
-    ,product.productQuantity quantity
-  FROM `bigquery-public-data.google_analytics_sample.ga_sessions_2017*`,
-              UNNEST(hits) hits,
-              UNNEST(hits.product) product
-  WHERE product.productRevenue is not null 
-    AND extract(month from cast(date as date format 'YYYYMMDD')) = 07
+    extract(MONTH FROM DATE(ModifiedDate)) stock_mth
+    ,productID
+    ,sum(StockedQty) stock_qty
+  FROM `adventureworks2019.Production.WorkOrder`
+  WHERE extract(YEAR FROM DATE(ModifiedDate)) = 2011
+  GROUP BY 1,2
 )
-SELECT
-  p.name other_purchased_products
-  ,sum(p.quantity) quantity
-FROM v1 LEFT JOIN purchased p
-ON v1.fullVisitorId = p.fullVisitorId
-WHERE p.name != "YouTube Men's Vintage Henley"
-GROUP BY p.name
-ODER BY quantity desc;
+SELECT 
+  sales_mth
+  ,yr
+  ,sales_info.productID
+  ,name
+  ,sales_qty
+  ,stock_qty
+  ,round(stock_qty/sales_qty,1) ratio
+FROM sales_info LEFT JOIN stock_info 
+  ON sales_info.ProductID = stock_info.ProductID AND sales_info.sales_mth = stock_info.stock_mth
+ORDER BY 1 DESC, 7 DESC;
 ```
 | other_purchased_products	| quantity| 
 | --- | --- |
@@ -329,35 +346,19 @@ ODER BY quantity desc;
 | Crunch Noise Dog Toy	| 2| 
 
 
-### **Query 8: Calculate cohort map from product view to addtocart to purchase in Jan, Feb and March 2017. Output calculated in product level**
+### **Query 8: No of order and value at Pending status in 2014**
 - Add_to_cart_rate = number product add to cart / number product view.
 - Purchase_rate = number product purchase/number product view.
 
 ```SQL
-WITH total_cohort AS (
-  SELECT
-    format_date('%Y%m', cast(date as date format 'YYYYMMDD')) month
-    ,SUM(CASE WHEN eCommerceAction.action_type = '2' THEN 1 ELSE 0 END) num_product_view
-    ,SUM(CASE WHEN eCommerceAction.action_type = '3' THEN 1 ELSE 0 END) num_addtocart
-    ,SUM(CASE WHEN eCommerceAction.action_type = '6' 
-              AND product.productRevenue IS NOT NULL 
-              THEN 1 ELSE 0 END) num_purchase
-  FROM
-      `bigquery-public-data.google_analytics_sample.ga_sessions_2017*`,
-      UNNEST(hits) hits,
-      UNNEST(hits.product) product
-  WHERE EXTRACT(month from cast(date as date format 'YYYYMMDD')) IN (1,2,3)
-  GROPU BY month
-)
-SELECT
-  month
-  ,num_product_view
-  ,num_addtocart
-  ,num_purchase
-  ,round(100.0*num_addtocart/num_product_view,2) add_to_cart_rate
-  ,round(100.0*num_purchase/num_product_view,2) purchase_rate
-FROM total_cohort
-ORDER BY month;
+SELECT  
+  extract(YEAR FROM DATE(ModifiedDate)) yr
+  ,Status
+  ,count(DISTINCT PurchaseOrderID) order_Cnt
+  ,sum(TotalDue) value
+FROM `adventureworks2019.Purchasing.PurchaseOrderHeader`
+WHERE Status = 1 AND extract(YEAR FROM DATE(ModifiedDate)) = 2014
+GROUP BY 1,2;
 ```
 | month	| num_product_view	| num_addtocart	| num_purchase	| add_to_cart_rate	| purchase_rate| 
 | --- | --- | --- | --- | --- | --- |
@@ -368,4 +369,4 @@ ORDER BY month;
 
 
 ## **V. CONCLUSION**
-In conclusion, my analysis of the eCommerce dataset using SQL on Google BigQuery has uncovered valuable **_insights into total visits, pageviews, transactions, bounce rates, and revenue per traffic source_**, which can inform future business decisions. The **_next step_** will involve **_visualizing_** these insights and key trends using software such as Power BI or Tableau. Overall, this project demonstrates the **_effectiveness of employing SQL and big data tools_** like Google BigQuery to **_derive meaningful insights from large datasets_**.
+The Bicycle Manufacturer Database System designed using Google BigQuery provides a robust and scalable solution for managing the complexities of bicycle manufacturing, sales, and operations. By leveraging BigQuery’s powerful analytics and cloud-based capabilities, the system enables the manufacturer to efficiently track and analyze key business processes, from raw material procurement to sales transactions and production management.
