@@ -1,7 +1,7 @@
 ### Bicycle Manufacturer SQL Project
 
 ## **I. INTRODUCTION**
-In this project, **_business performance of an e-commerce website_** was analyzed using **_SQL_** in **_Google BigQuery_**, with some advanced SQL techniques like **_window function_** and **_aggregate function_**. The analysis covered critical business aspects such as **_website traffic, customer behavior patterns, revenue generation, sales performance,_** and **_conversion optimization_**. The **_insights_** derived from this work provided **_support to the Sales and Marketing teams_**, enabling them to make informed, data-driven decisions.
+The goal of this project is to design and develop an SQL-based database system to manage the operations of a bicycle manufacturing company. The system will help manage the production, sales, inventory, and employee-related data efficiently and effectively. It will allow the manufacturer to track raw materials, finished products, sales, suppliers, and customers.
 ## **II. DATASET**
 - The AdventureWorks2019 dataset is stored in a public Google BigQuery dataset.
   
