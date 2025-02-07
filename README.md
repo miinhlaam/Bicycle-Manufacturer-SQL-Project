@@ -172,39 +172,35 @@ RDER BY yr DESC, rnk;
 
 ### **Query 4: Average number of pageviews by purchaser type (purchasers vs non-purchasers) in June, July 2017**
 ```SQL
-WITH 
-purchaser_data AS (
-  SELECT
-      format_date("%Y%m",parse_date("%Y%m%d",date)) AS month,
-      (sum(totals.pageviews)/count(distinct fullvisitorid)) AS avg_pageviews_purchase,
-  FROM `bigquery-public-data.google_analytics_sample.ga_sessions_2017*`
-    ,unnest(hits) hits
-    ,unnest(product) product
-  WHERE _table_suffix between '0601' and '0731'
-    AND totals.transactions>=1
-    AND product.productRevenue is not null
-  GROUP BY month
-),
-
-non_purchaser_data AS (
-  SELECT
-      format_date("%Y%m",parse_date("%Y%m%d",date)) AS month,
-      sum(totals.pageviews)/count(distinct fullvisitorid) AS avg_pageviews_non_purchase,
-  FROM `bigquery-public-data.google_analytics_sample.ga_sessions_2017*`
-      ,unnest(hits) hits
-    ,unnest(product) product
-  WHERE _table_suffix between '0601' and '0731'
-    AND totals.transactions is null
-    AND product.productRevenue is null
-  GROUP BY month
-)
-
 SELECT
-    pd.*,
-    avg_pageviews_non_purchase
-FROM purchaser_data pd
-FULL JOIN non_purchaser_data using(month)
-ORDER BY pd.month;
+  extract(YEAR FROM DATE(sales.ModifiedDate))
+  ,sub.Name Name
+  ,sum(sales.OrderQty * sales.UnitPrice * offer.DiscountPct) total_cost
+FROM `adventureworks2019.Sales.SalesOrderDetail` sales
+LEFT JOIN `adventureworks2019.Sales.SpecialOffer` offer ON sales.SpecialOfferID = offer.SpecialOfferID
+LEFT JOIN `adventureworks2019.Production.Product` product ON sales.ProductID = product.ProductID
+LEFT JOIN `adventureworks2019.Production.ProductSubcategory` sub ON cast(product.ProductSubcategoryID AS INT) = sub.ProductSubcategoryID
+WHERE lower(offer.Type) LIKE '%seasonal discount%' 
+GROUP BY 1,2
+ORDER BY 1,2;
+
+--> mình nên luôn tách aggregate function và field*field ra, cho dễ nhìn, dễ kiểm soát output 
+SELECT 
+    FORMAT_TIMESTAMP("%Y", ModifiedDate)
+    , Name
+    , sum(disc_cost) AS total_cost
+FROM (
+      SELECT DISTINCT a.ModifiedDate
+      , c.Name
+      , d.DiscountPct, d.Type
+      , a.OrderQty * d.DiscountPct * UnitPrice AS disc_cost 
+      FROM `adventureworks2019.Sales.SalesOrderDetail` a
+      LEFT JOIN `adventureworks2019.Production.Product` b ON a.ProductID = b.ProductID
+      LEFT JOIN `adventureworks2019.Production.ProductSubcategory` c ON cast(b.ProductSubcategoryID AS INT) = c.ProductSubcategoryID
+      LEFT JOIN `adventureworks2019.Sales.SpecialOffer` d ON a.SpecialOfferID = d.SpecialOfferID
+      WHERE lower(d.Type) LIKE '%seasonal discount%' 
+)
+GROUP BY 1,2;
 ```
 | month	| avg_pageviews_purchase| avg_pageviews_non_purchase
 | --- | --- | --- |
@@ -214,18 +210,52 @@ ORDER BY pd.month;
 
 ### **Query 5: Average number of transactions per user that made a purchase in July 2017**
 ```SQL
-SELECT  
-   format_date('%Y%m', cast(date as date format 'YYYYMMDD')) month
-   ,sum(totals.transactions)/count(distinct fullVisitorId) Avg_total_transactions_per_user
-FROM
-    `bigquery-public-data.google_analytics_sample.ga_sessions_201707*`,    --chỉnh lại lấy 201707*
-    UNNEST(hits) hits,
-    UNNEST(hits.product) product
-WHERE 
-    product.productRevenue IS NOT NULL
-    AND totals.transactions >= 1
-    --AND extract(month from cast(date as date format 'YYYYMMDD')) = 07
-GROUP BY month;
+WITH 
+info AS (
+  SELECT  
+      extract(MONTH FROM ModifiedDate) AS month_no
+      , extract(YEAR FROM ModifiedDate) AS year_no
+      , CustomerID
+      , count(Distinct SalesOrderID) AS order_cnt
+  FROM `adventureworks2019.Sales.SalesOrderHeader`
+  WHERE FORMAT_TIMESTAMP("%Y", ModifiedDate) = '2014'
+  AND Status = 5
+  GROUP BY 1,2,3
+  ORDER BY 3,1 
+),
+
+row_num AS (--đánh số thứ tự các tháng họ mua hàng
+  SELECT *
+      , row_number() OVER(PARTITION BY CustomerID ORDER BY month_no) AS row_numb
+  FROM info 
+), 
+
+first_order AS (   --lấy ra tháng đầu tiên của từng khách
+  SELECT *
+  FROM row_num
+  WHERE row_numb = 1
+), 
+
+month_gap AS (
+  SELECT 
+      a.CustomerID
+      , b.month_no AS month_join
+      , a.month_no AS month_order
+      , a.order_cnt
+      , concat('M - ',a.month_no - b.month_no) AS month_diff
+  FROM info a 
+  LEFT JOIN first_order b 
+  ON a.CustomerID = b.CustomerID
+  ORDER BY 1,3
+)
+
+SELECT month_join
+      , month_diff 
+      , count(DISTINCT CustomerID) AS customer_cnt
+FROM month_gap
+GROUP BY 1,2
+ORDER BY 1,2;
+
 ```
 | month	| avg_total_transactions_per_user| 
 | --- | --- |
