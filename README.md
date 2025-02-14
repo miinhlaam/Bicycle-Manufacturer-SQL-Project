@@ -3,8 +3,7 @@
 ## **I. INTRODUCTION**
 This project aims to practice SQL syntax, problem solving skill apply for a bicycle manufacturing company using Google BigQuery. The system will efficiently manage large volumes of data related to bicycle production, inventory, sales, and customer management, taking advantage of BigQuery’s powerful capabilities in handling large datasets and performing complex analytics in real-time.
 ## **II. DATASET**
-- The AdventureWorks2019 dataset is stored in a public Google BigQuery dataset.
-  
+- The AdventureWorks2019 dataset is stored in a public Google BigQuery dataset.  
 - Dataset Dictionary: [https://support.google.com/analytics/answer/3437719?hl=en](https://drive.google.com/file/d/1bwwsS3cRJYOg1cvNppc1K_8dQLELN16T/view)
   
 
