@@ -27,11 +27,7 @@ WHERE DATE(a.ModifiedDate) >=  (SELECT DATE_SUB(date(max(a.ModifiedDate)), INTER
 GROUP BY 1,2
 ORDER BY 2,1;
 ```
-| month	| visits	| pageviews	| transactions| 
-| --- | --- | --- | --- |
-|201701	|64694	|257708	|713|
-| 201702	| 62192	| 233373	| 733| 
-| 201703	| 69931	| 259522	| 993| 
+![Q1](https://github.com/user-attachments/assets/151bc038-5503-4c6f-bbe6-8371c982c2f6)
 
 
 
@@ -76,20 +72,8 @@ SELECT
   WHERE rnk IN (1,2,3)
   ORDER BY rnk;
 ```
-| source	| total_visits	| total_no_of_bounces	| bounce_rate| 
-| --- | --- | --- | --- |
-| google	| 38400	| 19798	| 51.557| 
-| (direct)	| 19891	| 8606	| 43.266| 
-| youtube.com	| 6351	| 4238	| 66.73| 
-| analytics.google.com	| 1972	| 1064	| 53.955| 
-| Partners	| 1788	| 936	| 52.349| 
-| m.facebook.com	| 669	| 430	| 64.275| 
-| google.com	| 368	| 183	| 49.728| 
-| dfa	| 302	| 124	| 41.06| 
-| sites.google.com	| 230	| 97	| 42.174| 
-| facebook.com	| 191	| 102	| 53.403| 
-| reddit.com	| 189	| 54	| 28.571| 
-| qiita.com	| 146	| 72	| 49.315| 
+![Q2](https://github.com/user-attachments/assets/a3a62333-6eee-48d8-9a61-61b9a4a1af95)
+
 
 
 ### **Query 3: Ranking Top 3 TeritoryID with biggest Order quantity of every year. If there's TerritoryID with same quantity in a year, do not skip the rank number**
@@ -120,54 +104,7 @@ FROM rnk_tab
 WHERE rnk IN (1,2,3)
 RDER BY yr DESC, rnk;
 ```
-| time_type	| time	| source	| revenue| 
-| --- | --- | --- | --- |
-| Month	| 201706	| (direct)	| 97333.6197| 
-| Month	| 201706	| google	| 18757.1799| 
-| Month	| 201706	| dfa	| 8862.23| 
-| Month| 	201706|	mail.google.com| 	2563.13| 
-| Month	| 201706| 	search.myway.com| 	105.94| 
-| Month| 	201706| 	groups.google.com| 	101.96| 
-| Month| 	201706| 	chat.google.com| 	74.03| 
-| Month| 	201706| 	dealspotr.com| 	72.95| 
-| Month| 	201706| 	mail.aol.com| 	64.85| 
-| Month| 	201706| 	phandroid.com| 	52.95| 
-| Month| 	201706| 	sites.google.com| 	39.17| 
-| Month| 	201706| 	google.com| 	23.99| 
-| Month| 	201706| 	yahoo| 	20.39| 
-| Month| 	201706| 	youtube.com| 	16.99| 
-| Month| 	201706| 	bing| 	13.98| 
-| Month	| 201706| 	l.facebook.com| 	12.48| 
-| Week	| 201722	| (direct)	| 6888.9| 
-| Week	| 201722	| google| 	2119.39| 
-| Week	| 201722	| dfa	| 1670.65| 
-| Week	| 201722	| sites.google.com	| 13.98| 
-| Week	| 201723	| (direct)	| 17325.6799| 
-| Week| 	201723	| dfa| 	1145.28| 
-| Week| 	201723	| google	| 1083.95| 
-| Week	| 201723| 	search.myway.com| 	105.94| 
-| Week| 	201723	| chat.google.com	| 74.03| 
-| Week	| 201723	| youtube.com	| 16.99| 
-| Week	| 201724	| (direct)	| 30908.9099| 
-| Week	| 201724	| google| 	9217.17| 
-| Week	| 201724| 	mail.google.com	| 2486.86| 
-| Week	| 201724	| dfa	| 2341.56| 
-| Week	| 201724	| dealspotr.com	| 72.95| 
-| Week	| 201724	| bing	| 13.98| 
-| Week| 	201724	| l.facebook.com	| 12.48| 
-| Week	| 201725	| (direct)	| 27295.3199| 
-| Week	| 201725	| google	| 1006.1| 
-| Week	| 201725| 	mail.google.com	| 76.27| 
-| Week	| 201725| 	mail.aol.com| 	64.85| 
-| Week	| 201725	| phandroid.com	| 52.95| 
-| Week	| 201725	| groups.google.com	| 38.59| 
-| Week	| 201725	| sites.google.com	| 25.19| 
-| Week	| 201725	| google.com| 	23.99| 
-| Week	| 201726	| (direct)	| 14914.81| 
-| Week	| 201726	| google	| 5330.57| 
-| Week	| 201726	| dfa	|3704.74| 
-| Week	| 201726	| groups.google.com	| 63.37| 
-| Week	| 201726	| yahoo	| 20.39| 
+![Q3](https://github.com/user-attachments/assets/900e72fe-2f59-4212-b1fc-cf5ba93b8b98)
 
 
 ### **Query 4: Calc Total Discount Cost belongs to Seasonal Discount for each SubCategory**
@@ -183,29 +120,8 @@ LEFT JOIN `adventureworks2019.Production.ProductSubcategory` sub ON cast(product
 WHERE lower(offer.Type) LIKE '%seasonal discount%' 
 GROUP BY 1,2
 ORDER BY 1,2;
-
---> mình nên luôn tách aggregate function và field*field ra, cho dễ nhìn, dễ kiểm soát output 
-SELECT 
-    FORMAT_TIMESTAMP("%Y", ModifiedDate)
-    , Name
-    , sum(disc_cost) AS total_cost
-FROM (
-      SELECT DISTINCT a.ModifiedDate
-      , c.Name
-      , d.DiscountPct, d.Type
-      , a.OrderQty * d.DiscountPct * UnitPrice AS disc_cost 
-      FROM `adventureworks2019.Sales.SalesOrderDetail` a
-      LEFT JOIN `adventureworks2019.Production.Product` b ON a.ProductID = b.ProductID
-      LEFT JOIN `adventureworks2019.Production.ProductSubcategory` c ON cast(b.ProductSubcategoryID AS INT) = c.ProductSubcategoryID
-      LEFT JOIN `adventureworks2019.Sales.SpecialOffer` d ON a.SpecialOfferID = d.SpecialOfferID
-      WHERE lower(d.Type) LIKE '%seasonal discount%' 
-)
-GROUP BY 1,2;
 ```
-| month	| avg_pageviews_purchase| avg_pageviews_non_purchase
-| --- | --- | --- |
-| 201706	| 94.02050113895217	| 316.86558846341671| 
-| 201707	| 124.23755186721992	| 334.05655979568053| 
+![Q4](https://github.com/user-attachments/assets/890350d2-46c1-4f17-b62a-d99bd85f835b)
 
 
 ### **Query 5: Retention rate of Customer in 2014 with status of Successfully Shipped (Cohort Analysis)**
@@ -257,9 +173,8 @@ GROUP BY 1,2
 ORDER BY 1,2;
 
 ```
-| month	| avg_total_transactions_per_user| 
-| --- | --- |
-| 201707	| 4.16390041493776| 
+![Q5](https://github.com/user-attachments/assets/358f5603-eb2b-4b99-b322-4142ba8a317c)
+
 
 
 
@@ -291,9 +206,7 @@ SELECT
 FROM get_diff
 ORDER BY name, month DESC;
 ```
-| month	| avg_revenue_by_user_per_visit| 
-| --- | --- |
-| 201707	| 43.86| 
+![Q6](https://github.com/user-attachments/assets/3f86d638-1f74-4577-994b-5daf421713f8)
 
 
 
@@ -332,18 +245,8 @@ FROM sales_info LEFT JOIN stock_info
   ON sales_info.ProductID = stock_info.ProductID AND sales_info.sales_mth = stock_info.stock_mth
 ORDER BY 1 DESC, 7 DESC;
 ```
-| other_purchased_products	| quantity| 
-| --- | --- |
-| Google Sunglasses	| 20| 
-| Google Women's Vintage Hero Tee Black	| 7| 
-| SPF-15 Slim & Slender Lip Balm	| 6| 
-| Google Women's Short Sleeve Hero Tee Red Heather	| 4| 
-| Google Men's Short Sleeve Badge Tee Charcoal	| 3| 
-| YouTube Men's Fleece Hoodie Black	| 3| 
-| YouTube Twill Cap	| 2| 
-| Google Men's Short Sleeve Hero Tee Charcoal	| 2| 
-| Red Shine 15 oz Mug	| 2| 
-| Crunch Noise Dog Toy	| 2| 
+![Q7](https://github.com/user-attachments/assets/1d2765a0-5b38-418f-a06d-a551eb9067d8)
+
 
 
 ### **Query 8: No of order and value at Pending status in 2014**
@@ -360,11 +263,7 @@ FROM `adventureworks2019.Purchasing.PurchaseOrderHeader`
 WHERE Status = 1 AND extract(YEAR FROM DATE(ModifiedDate)) = 2014
 GROUP BY 1,2;
 ```
-| month	| num_product_view	| num_addtocart	| num_purchase	| add_to_cart_rate	| purchase_rate| 
-| --- | --- | --- | --- | --- | --- |
-| 201701	| 25787	| 7342	| 2143	| 28.47	| 8.31| 
-| 201702	| 21489	| 7360	| 2060	| 34.25	| 9.59| 
-| 201703	| 23549	| 8782	| 2977	| 37.29	| 12.64| 
+![Q8](https://github.com/user-attachments/assets/e352233f-0dc8-47d9-ae92-63eaf9bba365)
 
 
 
